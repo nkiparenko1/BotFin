@@ -14,7 +14,10 @@ export default function GoalDetailPage({ params }: { params: { id: string } }) {
 
   useEffect(() => {
     if (!session?.accessToken) return;
-    apiFetch(`/api/goals/${params.id}`, { token: session.accessToken }).then(setData);
+    apiFetch<{
+      goal: Record<string, unknown>;
+      calculations: { monthly_deposit: number; progress_pct: number; scenarios: Record<string, number> };
+    }>(`/api/goals/${params.id}`, { token: session.accessToken }).then(setData);
   }, [session, params.id]);
 
   if (!data) return <AppShell><p>Загрузка...</p></AppShell>;
