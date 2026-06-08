@@ -1,0 +1,9 @@
+# Frontend service — Railway → Variables → Raw Editor
+# Service name MUST be: Frontend
+# Root Directory: frontend
+# Backend service on canvas MUST be named: BotFin
+
+NEXTAUTH_URL=https://${{Frontend.RAILWAY_PUBLIC_DOMAIN}}
+NEXTAUTH_SECRET=REPLACE_WITH_RANDOM_32_CHARS
+NEXT_PUBLIC_API_URL=https://${{BotFin.RAILWAY_PUBLIC_DOMAIN}}
+INTERNAL_API_URL=http://${{BotFin.RAILWAY_PRIVATE_DOMAIN}}:${{BotFin.PORT}}

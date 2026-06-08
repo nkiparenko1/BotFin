@@ -2,9 +2,30 @@ import type { NextAuthOptions } from "next-auth";
 import CredentialsProvider from "next-auth/providers/credentials";
 import GoogleProvider from "next-auth/providers/google";
 
-/** Server-side URL (NextAuth runs in Node). In Docker use http://backend:8000. */
-const SERVER_API_URL =
-  process.env.INTERNAL_API_URL || process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
+/** Server-side URL (NextAuth runs in Node). Prefer private Railway network, then public API. */
+function getBackendBaseUrls(): string[] {
+  const urls = [
+    process.env.INTERNAL_API_URL,
+    process.env.NEXT_PUBLIC_API_URL,
+  ].filter((url): url is string => Boolean(url && !url.includes("${{")));
+  return [...new Set(urls)];
+}
+
+async function backendFetch(path: string, init?: RequestInit): Promise<Response | null> {
+  let lastError: unknown;
+  for (const base of getBackendBaseUrls()) {
+    try {
+      const res = await fetch(`${base.replace(/\/$/, "")}${path}`, init);
+      if (res.ok) return res;
+      console.error(`Backend ${base}${path} -> ${res.status}`);
+    } catch (err) {
+      lastError = err;
+      console.error(`Backend ${base}${path} failed:`, err);
+    }
+  }
+  if (lastError) console.error("All backend URLs failed for", path, lastError);
+  return null;
+}
 
 declare module "next-auth" {
   interface Session {
@@ -23,12 +44,12 @@ declare module "next-auth/jwt" {
 }
 
 async function refreshAccessToken(refreshToken: string) {
-  const res = await fetch(`${SERVER_API_URL}/api/auth/refresh`, {
+  const res = await backendFetch("/api/auth/refresh", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ refresh_token: refreshToken }),
   });
-  if (!res.ok) throw new Error("Refresh failed");
+  if (!res) throw new Error("Refresh failed");
   const data = await res.json();
   return data.access_token as string;
 }
@@ -45,8 +66,8 @@ export const authOptions: NextAuthOptions = {
       },
       async authorize(credentials) {
         if (credentials?.mode === "guest") {
-          const res = await fetch(`${SERVER_API_URL}/api/auth/guest`, { method: "POST" });
-          if (!res.ok) return null;
+          const res = await backendFetch("/api/auth/guest", { method: "POST" });
+          if (!res) return null;
           const data = await res.json();
           return {
             id: data.user.id,
@@ -63,12 +84,12 @@ export const authOptions: NextAuthOptions = {
           ? { email: credentials.email, password: credentials.password, name: credentials.name || "User" }
           : { email: credentials.email, password: credentials.password };
 
-        const res = await fetch(`${SERVER_API_URL}${endpoint}`, {
+        const res = await backendFetch(endpoint, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify(body),
         });
-        if (!res.ok) return null;
+        if (!res) return null;
         const data = await res.json();
         return {
           id: data.user.id,
