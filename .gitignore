@@ -1,0 +1,15 @@
+.env
+.env.local
+node_modules/
+.next/
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+dist/
+*.egg-info/
+.pytest_cache/
+.coverage
+htmlcov/
+.DS_Store
+*.log
