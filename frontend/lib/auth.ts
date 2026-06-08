@@ -2,12 +2,19 @@ import type { NextAuthOptions } from "next-auth";
 import CredentialsProvider from "next-auth/providers/credentials";
 import GoogleProvider from "next-auth/providers/google";
 
+/** Skip unresolved Railway refs and malformed bases (e.g. http://:8000 when service name is wrong). */
+function isValidBackendBase(url: string | undefined): url is string {
+  if (!url || url.includes("${{")) return false;
+  try {
+    return Boolean(new URL(url).hostname);
+  } catch {
+    return false;
+  }
+}
+
 /** Server-side URL (NextAuth runs in Node). Prefer private Railway network, then public API. */
 function getBackendBaseUrls(): string[] {
-  const urls = [
-    process.env.INTERNAL_API_URL,
-    process.env.NEXT_PUBLIC_API_URL,
-  ].filter((url): url is string => Boolean(url && !url.includes("${{")));
+  const urls = [process.env.INTERNAL_API_URL, process.env.NEXT_PUBLIC_API_URL].filter(isValidBackendBase);
   return [...new Set(urls)];
 }
 

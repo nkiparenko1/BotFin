@@ -1,5 +1,7 @@
 .env
 .env.local
+.railway/
+scripts/railway/*.generated.env
 node_modules/
 .next/
 __pycache__/
