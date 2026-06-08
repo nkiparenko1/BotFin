@@ -15,7 +15,7 @@ function isValidBackendBase(url: string | undefined): url is string {
 /** Server-side URL (NextAuth runs in Node). Prefer private Railway network, then public API. */
 function getBackendBaseUrls(): string[] {
   const urls = [process.env.INTERNAL_API_URL, process.env.NEXT_PUBLIC_API_URL].filter(isValidBackendBase);
-  return [...new Set(urls)];
+  return Array.from(new Set(urls));
 }
 
 async function backendFetch(path: string, init?: RequestInit): Promise<Response | null> {
